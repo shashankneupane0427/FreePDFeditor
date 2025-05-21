@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = ({ theme, toggleTheme }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+
+  // Track scroll position to add additional styling when scrolled
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -20,30 +31,36 @@ const Header = ({ theme, toggleTheme }) => {
   ];
 
   return (
-    <header className={`sticky top-0 z-50 shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+    <header 
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'shadow-md' : ''
+      } ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
+          {/* Logo */}
+          <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                FreePDF<span className="font-extrabold">Editor</span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-700 bg-clip-text text-transparent">
+                Free
+                PDF<span className="font-extrabold">Editor</span>
               </span>
-              <span className="text-xs text-blue-600 ml-1 hidden md:inline">.tech</span>
+              <span className="text-xs bg-gradient-to-r from-blue-500 to-purple-700 bg-clip-text text-transparent ml-1 hidden md:inline font-semibold">.tech</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden md:flex items-center space-x-1">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`px-1 py-2 text-sm font-medium transition-colors hover:text-blue-600 ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   location.pathname === item.href
-                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    ? `${theme === 'dark' ? 'bg-gray-800' : 'bg-blue-50'} text-blue-600`
                     : theme === 'dark' 
-                      ? 'text-gray-300' 
-                      : 'text-gray-700'
+                      ? 'text-gray-300 hover:bg-gray-800 hover:text-blue-400' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
                 }`}
               >
                 {item.name}
@@ -51,11 +68,16 @@ const Header = ({ theme, toggleTheme }) => {
             ))}
           </nav>
 
-          <div className="flex items-center">
+          <div className="flex items-center space-x-3">
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-yellow-300' : 'bg-gray-200 text-gray-700'}`}
+              className={`p-2 rounded-full transition-colors duration-200 ${
+                theme === 'dark' 
+                  ? 'bg-gray-800 text-yellow-300 hover:bg-gray-700' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -68,16 +90,22 @@ const Header = ({ theme, toggleTheme }) => {
               )}
             </button>
 
-            {/* Login/Register Button - Hidden on mobile */}
-            <button className="hidden md:block ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
+            {/* Sign In Button */}
+            <button className="hidden md:block bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 shadow-sm">
               Sign In
             </button>
 
             {/* Mobile Menu Button */}
-            <div className="ml-4 md:hidden">
+            <div className="md:hidden">
               <button
                 onClick={toggleMenu}
-                className={`inline-flex items-center justify-center p-2 rounded-md ${theme === 'dark' ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
+                className={`inline-flex items-center justify-center p-2 rounded-md transition-colors duration-200 ${
+                  theme === 'dark' 
+                    ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+                aria-expanded={isMenuOpen}
+                aria-label="Toggle navigation menu"
               >
                 <span className="sr-only">Open main menu</span>
                 {isMenuOpen ? (
@@ -94,32 +122,36 @@ const Header = ({ theme, toggleTheme }) => {
           </div>
         </div>
 
-        {/* Mobile menu, show/hide based on menu state */}
-        {isMenuOpen && (
-          <div className="md:hidden py-3">
-            <div className="space-y-1 px-2 pb-3 pt-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${
-                    location.pathname === item.href
-                      ? 'bg-blue-600 text-white'
-                      : theme === 'dark'
-                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-base font-medium transition text-left">
+        {/* Mobile menu with smooth transition */}
+        <div 
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="px-2 pt-2 pb-4 space-y-1 border-t border-gray-200 dark:border-gray-700">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                  location.pathname === item.href
+                    ? `${theme === 'dark' ? 'bg-gray-800' : 'bg-blue-50'} text-blue-600`
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:bg-gray-800 hover:text-blue-400'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="pt-2">
+              <button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-md text-base font-medium transition-all duration-200 shadow-sm">
                 Sign In
               </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </header>
   );
