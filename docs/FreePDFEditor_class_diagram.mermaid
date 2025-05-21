@@ -1,0 +1,165 @@
+classDiagram
+    class User {
+        +string userId
+        +string email
+        +string passwordHash
+        +Array~string~ documentHistory
+        +Object preferences
+        +Date createdAt
+        +Date lastLogin
+        +boolean isActive
+        +register(email, password): User
+        +login(email, password): AuthToken
+        +updatePreferences(preferences): User
+        +getDocumentHistory(): Array~Document~
+    }
+
+    class Document {
+        +string documentId
+        +string userId
+        +string originalFilename
+        +string fileType
+        +number fileSize
+        +string storageUrl
+        +Date createdAt
+        +Date expiresAt
+        +boolean isProcessed
+        +Object processingMetadata
+        +Array~string~ tags
+        +upload(file, userId): Document
+        +download(): Buffer
+        +delete(): boolean
+        +getInfo(): Object
+        +extend(): boolean
+    }
+
+    class FileStorage {
+        +string provider
+        +Object config
+        +uploadFile(file, metadata): Promise~string~
+        +getFile(fileId): Promise~Buffer~
+        +deleteFile(fileId): Promise~boolean~
+        +generateTemporaryUrl(fileId, expiry): string
+        +checkFileExists(fileId): Promise~boolean~
+    }
+
+    class PDFProcessor {
+        +editText(document, changes): Promise~Document~
+        +merge(documents): Promise~Document~
+        +split(document, pages): Promise~Array~Document~~
+        +compress(document, options): Promise~Document~
+        +rotate(document, degrees, pages): Promise~Document~
+        +convertToFormat(document, targetFormat): Promise~Document~
+        +convertFromFormat(document, sourceFormat): Promise~Document~
+        +fillForm(document, formData): Promise~Document~
+        +addSignature(document, signature, position): Promise~Document~
+    }
+
+    class AIProcessor {
+        +string provider
+        +Object config
+        +summarize(document, options): Promise~string~
+        +extractText(document): Promise~string~
+        +performOCR(document): Promise~string~
+        +chatWithDocument(document, query): Promise~string~
+        +suggestFormatting(document): Promise~Array~Suggestion~~
+        +analyzeDocument(document): Promise~Object~
+    }
+
+    class AuthService {
+        -string jwtSecret
+        +generateToken(user): string
+        +verifyToken(token): User|null
+        +refreshToken(token): string
+        +hashPassword(password): string
+        +comparePassword(password, hash): boolean
+    }
+
+    class APIController {
+        +handleFileUpload(req, res): Promise~Response~
+        +handleFileDownload(req, res): Promise~Response~
+        +processPDF(req, res): Promise~Response~
+        +processAI(req, res): Promise~Response~
+        +manageUser(req, res): Promise~Response~
+        +handleAuthentication(req, res): Promise~Response~
+    }
+
+    class SEOManager {
+        +generateMetaTags(page, data): Object
+        +generateSitemap(): string
+        +optimizePage(page): void
+        +trackKeywords(keywords): void
+        +generateStructuredData(page, data): Object
+    }
+
+    class AnalyticsService {
+        +trackEvent(eventName, data): void
+        +trackPageView(page): void
+        +trackConversion(type): void
+        +getUserMetrics(): Object
+        +getToolUsageStats(): Object
+    }
+
+    class CacheManager {
+        +get(key): Promise~any~
+        +set(key, value, ttl): Promise~boolean~
+        +delete(key): Promise~boolean~
+        +flush(): Promise~boolean~
+        +getMultiple(keys): Promise~Object~
+    }
+
+    class JobQueue {
+        +addJob(type, data, options): Promise~string~
+        +processJobs(): void
+        +getJobStatus(jobId): Promise~string~
+        +cancelJob(jobId): Promise~boolean~
+        +retryJob(jobId): Promise~boolean~
+    }
+
+    class Frontend {
+        <<Next.js Application>>
+        +renderPage(page, props): ReactElement
+        +handleClientSideProcessing(): void
+        +renderPDFPreview(document): ReactElement
+        +handleDragDrop(): void
+        +toggleTheme(): void
+    }
+
+    class PDFViewer {
+        +document: PDFDocument
+        +currentPage: number
+        +zoom: number
+        +render(container): void
+        +nextPage(): void
+        +prevPage(): void
+        +setZoom(level): void
+        +search(text): Array~Result~
+    }
+
+    class FormHandler {
+        +form: PDFForm
+        +loadForm(document): void
+        +getFields(): Array~Field~
+        +fillField(name, value): void
+        +validateForm(): boolean
+        +submitForm(): PDFDocument
+    }
+
+    User "1" -- "*" Document : owns
+    Document "*" -- "1" FileStorage : stored in
+    Document -- PDFProcessor : processed by
+    Document -- AIProcessor : analyzed by
+    User -- AuthService : authenticated by
+    APIController -- PDFProcessor : uses
+    APIController -- AIProcessor : uses
+    APIController -- FileStorage : manages
+    APIController -- User : manages
+    JobQueue -- PDFProcessor : executes
+    JobQueue -- AIProcessor : executes
+    Frontend -- APIController : calls
+    Frontend -- PDFViewer : includes
+    Frontend -- FormHandler : includes
+    PDFProcessor -- CacheManager : uses
+    AIProcessor -- CacheManager : uses
+    Frontend -- SEOManager : optimized by
+    APIController -- AnalyticsService : tracks

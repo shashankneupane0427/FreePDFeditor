@@ -1,0 +1,128 @@
+sequenceDiagram
+    participant User
+    participant FE as Frontend
+    participant API as APIController
+    participant Auth as AuthService
+    participant PP as PDFProcessor
+    participant AI as AIProcessor
+    participant FS as FileStorage
+    participant JQ as JobQueue
+    participant CM as CacheManager
+    participant DB as Database
+
+    %% PDF Upload and Processing Flow
+    User->>FE: Upload PDF
+    FE->>FE: Validate file (size, type)
+    FE->>API: POST /api/upload
+    API->>FS: uploadFile(file, metadata)
+    FS-->>API: Return storage URL
+    API->>DB: Create Document record
+    API-->>FE: Return document ID & URL
+    FE->>FE: Display PDF preview
+    
+    %% PDF Editing Flow
+    User->>FE: Select edit operation
+    FE->>API: POST /api/pdf/edit
+    API->>CM: Check cache for similar operation
+    CM-->>API: Cache miss
+    API->>FS: getFile(fileId)
+    FS-->>API: Return file buffer
+    API->>JQ: addJob("pdfEdit", data, options)
+    JQ-->>API: Return jobId
+    API-->>FE: Return job status & ID
+    FE->>FE: Show processing status
+    
+    %% Job Processing
+    JQ->>PP: processJob(jobId)
+    PP->>PP: performOperation(file, options)
+    PP->>FS: uploadFile(processedFile, metadata)
+    FS-->>PP: Return storage URL
+    PP->>DB: Update Document record
+    PP-->>JQ: Mark job complete
+    
+    %% Get Processing Result
+    FE->>API: GET /api/job/:jobId
+    API->>JQ: getJobStatus(jobId)
+    JQ-->>API: Return job status & result
+    API-->>FE: Return processing result
+    FE->>FE: Update UI with processed document
+    FE->>FE: Enable download/further actions
+    
+    %% AI Processing Flow
+    User->>FE: Request AI summarization
+    FE->>API: POST /api/ai/summarize
+    API->>CM: Check cache for document summary
+    CM-->>API: Cache miss
+    API->>FS: getFile(fileId)
+    FS-->>API: Return file buffer
+    API->>JQ: addJob("aiSummarize", data, options)
+    JQ-->>API: Return jobId
+    API-->>FE: Return job status & ID
+    
+    %% AI Job Processing
+    JQ->>AI: processJob(jobId)
+    AI->>AI: extractText(document)
+    AI->>AI: summarize(text)
+    AI->>DB: Store result
+    AI->>CM: Cache result
+    AI-->>JQ: Mark job complete
+    
+    %% Get AI Result
+    FE->>API: GET /api/job/:jobId
+    API->>JQ: getJobStatus(jobId)
+    JQ-->>API: Return job status & result
+    API-->>FE: Return AI result
+    FE->>FE: Display summary to user
+    
+    %% Optional User Registration
+    User->>FE: Create account
+    FE->>API: POST /api/auth/register
+    API->>Auth: register(email, password)
+    Auth->>Auth: hashPassword(password)
+    Auth->>DB: Create User record
+    Auth->>Auth: generateToken(user)
+    Auth-->>API: Return token
+    API-->>FE: Return authentication result
+    FE->>FE: Store token in localStorage
+    FE->>FE: Update UI for logged-in user
+    
+    %% Document History for Registered User
+    User->>FE: Access document history
+    FE->>API: GET /api/documents
+    API->>Auth: verifyToken(token)
+    Auth-->>API: Return user
+    API->>DB: Query documents for user
+    DB-->>API: Return document list
+    API-->>FE: Return document history
+    FE->>FE: Display document history
+    
+    %% PDF Download Flow
+    User->>FE: Download processed PDF
+    FE->>API: GET /api/download/:documentId
+    API->>FS: generateTemporaryUrl(fileId)
+    FS-->>API: Return temporary URL
+    API-->>FE: Return download URL
+    FE->>User: Initiate file download
+    
+    %% Multiple File Operation (Merge PDFs)
+    User->>FE: Select multiple PDFs
+    User->>FE: Request merge operation
+    FE->>API: POST /api/pdf/merge
+    API->>JQ: addJob("pdfMerge", files, options)
+    JQ-->>API: Return jobId
+    API-->>FE: Return job status & ID
+    JQ->>PP: processMergeJob(jobId)
+    PP->>FS: getFile(fileId) for each file
+    FS-->>PP: Return file buffers
+    PP->>PP: mergePDFs(files)
+    PP->>FS: uploadFile(mergedFile, metadata)
+    FS-->>PP: Return storage URL
+    PP->>DB: Create new Document record
+    PP-->>JQ: Mark job complete
+    
+    %% Cleanup Process
+    Note over FS,DB: Scheduled cleanup job runs
+    FS->>DB: Query expired documents
+    DB-->>FS: Return expired document list
+    FS->>FS: deleteFile for each expired document
+    FS->>DB: Update document status or delete records
